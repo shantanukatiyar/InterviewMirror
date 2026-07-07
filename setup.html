@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterviewMirror | Setup</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .setup-page {
+            width: min(900px, 90%);
+            margin: 0 auto;
+            padding: 55px 0 80px;
+        }
+
+        .setup-heading {
+            text-align: center;
+            margin-bottom: 34px;
+        }
+
+        .setup-heading h1 {
+            font-size: clamp(30px, 4vw, 44px);
+            margin-bottom: 10px;
+        }
+
+        .setup-heading p {
+            color: #aaa;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        .name-card {
+            text-align: left;
+            margin-bottom: 22px;
+        }
+
+        .name-card label {
+            display: block;
+            color: #D4AF37;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 9px;
+        }
+
+        .name-card input {
+            width: 100%;
+            background: #0B0B0F;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 13px 14px;
+            outline: none;
+            font-size: 15px;
+        }
+
+        .name-card input:focus {
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
+        }
+
+        .selectable {
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .selectable.selected {
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.12);
+            transform: translateY(-4px);
+        }
+
+        .setup-error {
+            color: #ff8d8d;
+            text-align: center;
+            min-height: 22px;
+            margin-top: 14px;
+            font-size: 14px;
+        }
+
+        .setup-actions {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .setup-actions button {
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="logo">InterviewMirror</div>
+        <a href="index.html" class="btn-secondary">Back</a>
+    </header>
+
+    <main class="setup-page">
+
+        <section class="setup-heading">
+            <h1>Set Up Your Practice Interview</h1>
+            <p>Enter your name and choose the interview category you want to practise.</p>
+        </section>
+
+        <section class="card name-card">
+            <label for="studentName">Your name</label>
+            <input
+                type="text"
+                id="studentName"
+                placeholder="For example: Shantanu"
+                maxlength="40"
+                autocomplete="name"
+            >
+        </section>
+
+        <section>
+            <h2 style="text-align:center; margin-bottom: 22px;">Choose Interview Type</h2>
+
+            <div class="grid">
+
+                <div class="card selectable" data-type="HR">
+                    <h3>HR Interview</h3>
+                    <p>Practise personality, communication, strengths, goals, and general interview questions.</p>
+                </div>
+
+                <div class="card selectable" data-type="BEHAVIORAL">
+                    <h3>Behavioral Interview</h3>
+                    <p>Practise real-life scenarios, teamwork, challenges, decision-making, and problem-solving.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="card" style="margin-top: 24px; text-align:left;">
+            <h3>Interview Rules</h3>
+            <ul style="margin-top:10px; color:#aaa; line-height:1.9; padding-left:20px;">
+                <li>Two questions will be asked in each practice session.</li>
+                <li>You get preparation time before every question.</li>
+                <li>Speak during the answer phase for speech-based feedback.</li>
+                <li>Your camera and microphone data stay in your browser.</li>
+            </ul>
+        </section>
+
+        <div class="setup-actions">
+            <button class="btn-primary" id="startButton">Start Interview</button>
+            <p class="setup-error" id="setupError"></p>
+        </div>
+
+    </main>
+
+    <script>
+        let selectedType = null;
+
+        const cards = document.querySelectorAll(".selectable");
+        const startButton = document.getElementById("startButton");
+        const studentNameInput = document.getElementById("studentName");
+        const setupError = document.getElementById("setupError");
+
+        cards.forEach((card) => {
+            card.addEventListener("click", () => {
+                selectedType = card.dataset.type;
+
+                cards.forEach((item) => item.classList.remove("selected"));
+                card.classList.add("selected");
+
+                setupError.textContent = "";
+            });
+        });
+
+        startButton.addEventListener("click", () => {
+            const studentName = studentNameInput.value.trim();
+
+            if (!studentName) {
+                setupError.textContent = "Please enter your name before starting.";
+                studentNameInput.focus();
+                return;
+            }
+
+            if (!selectedType) {
+                setupError.textContent = "Please select an interview type before starting.";
+                return;
+            }
+
+            localStorage.setItem("studentName", studentName);
+            localStorage.setItem("interviewType", selectedType);
+
+            window.location.href = "interview.html";
+        });
+    </script>
+
+</body>
+</html>

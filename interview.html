@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterviewMirror | Interview Session</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="logo">InterviewMirror</div>
+
+
+<div class="session-status">
+    <span class="live-dot"></span>
+    <span id="status">Checking camera and microphone...</span>
+</div>
+
+</header>
+
+<main class="interview-page">
+
+<section class="interview-topbar">
+    <div>
+        <p class="eyebrow" id="roundLabel">MOCK INTERVIEW</p>
+        <h1 id="phaseTitle">Set Up Your Interview</h1>
+    </div>
+
+    <div class="question-progress">
+        <span id="questionNumber">Question 0 of 2</span>
+        <div class="progress-track">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+    </div>
+</section>
+
+<section class="interview-layout">
+
+    <div class="camera-panel card">
+        <div class="panel-heading">
+            <h3>Camera Preview</h3>
+            <span id="cameraStatus" class="small-status">Connecting...</span>
+        </div>
+
+        <div class="video-wrap">
+            <video id="video" autoplay muted playsinline></video>
+            <div class="video-overlay">
+                <span class="live-dot"></span>
+                Live camera preview
+            </div>
+        </div>
+
+        <p class="camera-note">
+            Camera and microphone access are required to begin. Your video is not recorded or uploaded.
+        </p>
+    </div>
+
+    <div class="question-panel">
+
+        <div class="card question-card">
+            <div class="question-card-top">
+                <span id="phaseBadge" class="phase-badge">SETUP</span>
+
+                <div class="timer-box">
+                    <span class="timer-label">TIME LEFT</span>
+                    <strong id="timer">--</strong>
+                </div>
+            </div>
+
+            <p class="question-label">INTERVIEW QUESTION</p>
+            <h2 id="question">Allow camera and microphone access to begin.</h2>
+
+            <p id="phaseInstruction" class="phase-instruction">
+                InterviewMirror will unlock the interview after it confirms camera, microphone, and speech recognition support.
+            </p>
+
+            <button id="startButton" class="btn-primary" type="button" disabled>
+                Checking Permissions...
+            </button>
+
+            <button id="retryButton" class="btn-secondary retry-button" type="button" style="display: none;">
+                Try Permissions Again
+            </button>
+        </div>
+
+        <div class="card transcript-card">
+            <div class="panel-heading">
+                <div>
+                    <h3>Live Answer Transcript</h3>
+                    <p id="transcriptStatus">Waiting for microphone access.</p>
+                </div>
+                <span id="wordCount" class="word-count">0 words</span>
+            </div>
+
+            <div id="transcript" class="transcript-box placeholder-text" aria-live="polite">
+                Your spoken answer will appear here after the interview begins.
+            </div>
+
+            <p class="transcript-note">
+                Speech recognition runs in your browser and is used for transcript-based practice feedback.
+            </p>
+        </div>
+
+    </div>
+
+</section>
+
+</main>
+
+<script>
+    const selectedType = localStorage.getItem("interviewType");
+
+    if (!selectedType) {
+        window.location.href = "setup.html";
+    }
+
+    const questions = {
+        HR: [
+            "Tell me about yourself.",
+            "Walk me through your resume.",
+            "What are your key strengths? Give an example for each.",
+            "What is one weakness you are working on?",
+            "Why did you choose your branch of engineering?",
+            "What is the project you are most proud of?",
+            "Where do you see yourself in five years?",
+            "Why should we hire you?"
+        ],
+        BEHAVIORAL: [
+            "Tell me about a time you faced a significant challenge and how you overcame it.",
+            "Describe a situation where you had to work with a difficult team member.",
+            "Give an example of a time you failed. What did you learn from it?",
+            "Tell me about a time you went above and beyond what was expected of you.",
+            "Describe a time you had to manage multiple competing deadlines.",
+            "Tell me about a time you had a conflict with someone. How did you resolve it?",
+            "Describe a situation where you had to adapt to a sudden change.",
+            "Tell me about your most successful teamwork experience."
+        ]
+    };
+
+    const PREP_TIME = 30;
+    const ANSWER_TIME = 60;
+    const TRANSITION_TIME = 5;
+    const TOTAL_QUESTIONS = 2;
+
+    let currentQuestionIndex = 0;
+    let currentQuestion = "";
+    let currentTranscript = "";
+    let finalTranscript = "";
+    let currentAnswerStartedAt = null;
+    let timerInterval = null;
+    let mediaStream = null;
+    let recognition = null;
+    let recognitionSupported = false;
+    let permissionsReady = false;
+    let isAnswerPhase = false;
+
+    const interviewData = {
+        interviewType: selectedType,
+        totalQuestions: TOTAL_QUESTIONS,
+        questions: [],
+        startedAt: new Date().toISOString()
+    };
+
+    const status = document.getElementById("status");
+    const cameraStatus = document.getElementById("cameraStatus");
+    const phaseTitle = document.getElementById("phaseTitle");
+    const phaseBadge = document.getElementById("phaseBadge");
+    const phaseInstruction = document.getElementById("phaseInstruction");
+    const questionElement = document.getElementById("question");
+    const timerElement = document.getElementById("timer");
+    const startButton = document.getElementById("startButton");
+    const retryButton = document.getElementById("retryButton");
+    const transcriptElement = document.getElementById("transcript");
+    const transcriptStatus = document.getElementById("transcriptStatus");
+    const wordCountElement = document.getElementById("wordCount");
+    const questionNumber = document.getElementById("questionNumber");
+    const progressBar = document.getElementById("progressBar");
+    const video = document.getElementById("video");
+
+    document.getElementById("roundLabel").textContent =
+        selectedType === "HR" ? "HR INTERVIEW PRACTICE" : "BEHAVIOURAL INTERVIEW PRACTICE";
+
+    function getRandomQuestions(questionList, count) {
+        const shuffled = [...questionList].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, count);
+    }
+
+    const selectedQuestions = getRandomQuestions(questions[selectedType], TOTAL_QUESTIONS);
+
+    function updateProgress() {
+        questionNumber.textContent = `Question ${Math.min(currentQuestionIndex + 1, TOTAL_QUESTIONS)} of ${TOTAL_QUESTIONS}`;
+        progressBar.style.width = `${(currentQuestionIndex / TOTAL_QUESTIONS) * 100}%`;
+    }
+
+    function setTranscript(text, placeholder = false) {
+        transcriptElement.textContent = text;
+        transcriptElement.classList.toggle("placeholder-text", placeholder);
+    }
+
+    function updateWordCount() {
+        const words = currentTranscript.trim()
+            ? currentTranscript.trim().split(/\s+/).filter(Boolean).length
+            : 0;
+
+        wordCountElement.textContent = `${words} ${words === 1 ? "word" : "words"}`;
+    }
+
+    function showPermissionError(message) {
+        permissionsReady = false;
+        startButton.disabled = true;
+        startButton.textContent = "Permissions Required";
+        retryButton.style.display = "inline-flex";
+
+        phaseTitle.textContent = "Permission Required";
+        phaseBadge.textContent = "SETUP";
+        questionElement.textContent = "Allow camera and microphone access to continue.";
+        phaseInstruction.textContent = message;
+
+        cameraStatus.textContent = "Access required";
+        status.textContent = "Camera and microphone permission is required";
+        transcriptStatus.textContent = "Microphone access is required for live transcript scoring.";
+    }
+
+    function setupSpeechRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            recognitionSupported = false;
+            return false;
+        }
+
+        recognitionSupported = true;
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-IN";
+
+        recognition.onstart = () => {
+            transcriptStatus.textContent = "Listening to your answer...";
+            status.textContent = "Speech recognition is active";
+        };
+
+        recognition.onresult = (event) => {
+            let interimTranscript = "";
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const text = event.results[i][0].transcript;
+
+                if (event.results[i].isFinal) {
+                    finalTranscript += `${text} `;
+                } else {
+                    interimTranscript += text;
+                }
+            }
+
+            currentTranscript = `${finalTranscript} ${interimTranscript}`
+                .replace(/\s+/g, " ")
+                .trim();
+
+            if (currentTranscript) {
+                setTranscript(currentTranscript);
+            }
+
+            updateWordCount();
+        };
+
+        recognition.onerror = (event) => {
+            if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+                transcriptStatus.textContent = "Speech recognition permission was blocked.";
+            }
+        };
+
+        recognition.onend = () => {
+            if (isAnswerPhase && recognitionSupported) {
+                try {
+                    recognition.start();
+                } catch (error) {
+                    // Browser can restart recognition automatically.
+                }
+            }
+        };
+
+        return true;
+    }
+
+    async function checkPermissions() {
+        retryButton.style.display = "none";
+        startButton.disabled = true;
+        startButton.textContent = "Checking Permissions...";
+        status.textContent = "Requesting camera and microphone access...";
+        cameraStatus.textContent = "Connecting...";
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showPermissionError("Your browser does not support camera and microphone access. Use Chrome or Edge through Live Server.");
+            return;
+        }
+
+        if (!setupSpeechRecognition()) {
+            showPermissionError("Speech recognition is not supported in this browser. Use Google Chrome or Microsoft Edge.");
+            return;
+        }
+
+        try {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach((track) => track.stop());
+            }
+
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            });
+
+            const hasCamera = mediaStream.getVideoTracks().length > 0;
+            const hasMicrophone = mediaStream.getAudioTracks().length > 0;
+
+            if (!hasCamera || !hasMicrophone) {
+                mediaStream.getTracks().forEach((track) => track.stop());
+                showPermissionError("Both camera and microphone must be available before the interview can start.");
+                return;
+            }
+
+            video.srcObject = mediaStream;
+            permissionsReady = true;
+
+            cameraStatus.textContent = "Camera and mic ready";
+            status.textContent = "Setup complete — ready to start";
+            transcriptStatus.textContent = "Microphone connected. Transcript starts during answer time.";
+
+            phaseTitle.textContent = "Ready When You Are";
+            phaseBadge.textContent = "READY";
+            questionElement.textContent = "Your interview environment is ready.";
+            phaseInstruction.textContent =
+                "You will receive 30 seconds to prepare and 60 seconds to answer each question.";
+
+            startButton.disabled = false;
+            startButton.textContent = "Start Interview";
+        } catch (error) {
+            showPermissionError(
+                "Please allow both camera and microphone from the browser address bar, then click “Try Permissions Again”."
+            );
+        }
+    }
+
+    function startRecognition() {
+        if (!recognitionSupported || !recognition) {
+            return;
+        }
+
+        try {
+            recognition.start();
+        } catch (error) {
+            // Prevent duplicate start errors.
+        }
+    }
+
+    function stopRecognition() {
+        if (!recognition) {
+            return;
+        }
+
+        try {
+            recognition.stop();
+        } catch (error) {
+            // Recognition may already be stopped.
+        }
+    }
+
+    function runTimer(seconds, callback) {
+        clearInterval(timerInterval);
+
+        let timeLeft = seconds;
+        timerElement.textContent = timeLeft;
+        timerElement.classList.remove("timer-warning");
+
+        timerInterval = setInterval(() => {
+            timeLeft -= 1;
+            timerElement.textContent = timeLeft;
+
+            if (timeLeft <= 10) {
+                timerElement.classList.add("timer-warning");
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                callback();
+            }
+        }, 1000);
+    }
+
+    function startInterview() {
+        if (!permissionsReady) {
+            showPermissionError("Camera and microphone must be enabled before you can start.");
+            return;
+        }
+
+        startButton.style.display = "none";
+        retryButton.style.display = "none";
+        currentQuestionIndex = 0;
+        updateProgress();
+        startQuestion();
+    }
+
+    function startQuestion() {
+        if (currentQuestionIndex >= TOTAL_QUESTIONS) {
+            finishInterview();
+            return;
+        }
+
+        currentQuestion = selectedQuestions[currentQuestionIndex];
+        currentTranscript = "";
+        finalTranscript = "";
+        currentAnswerStartedAt = null;
+        isAnswerPhase = false;
+
+        updateProgress();
+
+        phaseTitle.textContent = "Preparation Time";
+        phaseBadge.textContent = "PREPARE";
+        questionElement.textContent = currentQuestion;
+        phaseInstruction.textContent =
+            "Read the question carefully and organise your points before the answer timer begins.";
+
+        transcriptStatus.textContent = "Your transcript will begin during answer time.";
+        setTranscript("Your spoken answer will appear here.", true);
+        updateWordCount();
+
+        runTimer(PREP_TIME, startAnswerPhase);
+    }
+
+    function startAnswerPhase() {
+        phaseTitle.textContent = "Answer Now";
+        phaseBadge.textContent = "ANSWERING";
+        phaseInstruction.textContent =
+            "Speak clearly and naturally. Use specific examples to support your answer.";
+
+        currentAnswerStartedAt = Date.now();
+        isAnswerPhase = true;
+
+        startRecognition();
+        runTimer(ANSWER_TIME, endAnswerPhase);
+    }
+
+    function endAnswerPhase() {
+        isAnswerPhase = false;
+        stopRecognition();
+
+        const answerDurationSeconds = currentAnswerStartedAt
+            ? Math.round((Date.now() - currentAnswerStartedAt) / 1000)
+            : 0;
+
+        const cleanTranscript = currentTranscript.replace(/\s+/g, " ").trim();
+        const wordCount = cleanTranscript
+            ? cleanTranscript.split(/\s+/).filter(Boolean).length
+            : 0;
+
+        interviewData.questions.push({
+            questionNumber: currentQuestionIndex + 1,
+            question: currentQuestion,
+            transcript: cleanTranscript,
+            wordCount: wordCount,
+            answerDurationSeconds: answerDurationSeconds
+        });
+
+        phaseTitle.textContent = currentQuestionIndex === TOTAL_QUESTIONS - 1
+            ? "Saving Your Responses"
+            : "Preparing Next Question";
+
+        phaseBadge.textContent = "NEXT";
+        phaseInstruction.textContent = currentQuestionIndex === TOTAL_QUESTIONS - 1
+            ? "Your responses are being prepared for analysis."
+            : "The next question will begin shortly.";
+
+        transcriptStatus.textContent = wordCount > 0
+            ? `${wordCount} words captured for this answer.`
+            : "No speech was detected for this answer.";
+
+        currentQuestionIndex += 1;
+        updateProgress();
+
+        runTimer(TRANSITION_TIME, startQuestion);
+    }
+
+    function finishInterview() {
+        clearInterval(timerInterval);
+        isAnswerPhase = false;
+        stopRecognition();
+
+        interviewData.completedAt = new Date().toISOString();
+        localStorage.setItem("interviewData", JSON.stringify(interviewData));
+
+        if (mediaStream) {
+            mediaStream.getTracks().forEach((track) => track.stop());
+        }
+
+        window.location.href = "analysis.html";
+    }
+
+    updateProgress();
+
+    startButton.addEventListener("click", startInterview);
+    retryButton.addEventListener("click", checkPermissions);
+
+    checkPermissions();
+</script>
+
+</body>
+</html>

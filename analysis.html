@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterviewMirror | Preparing Your Report</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<main class="analysis-page">
+    <section class="analysis-card">
+        <p class="eyebrow">INTERVIEW COMPLETE</p>
+        <h1>Preparing Your Practice Report</h1>
+
+        <div class="analysis-loader" aria-label="Preparing report"></div>
+
+        <div class="analysis-progress-track">
+            <div id="analysisProgress" class="analysis-progress-bar"></div>
+        </div>
+
+        <p id="status" class="analysis-status" aria-live="polite">
+            Reading your answer transcripts...
+        </p>
+
+        <div class="analysis-details">
+            <div>
+                <span>✓</span>
+                <p>Checking answer completeness</p>
+            </div>
+            <div>
+                <span>✓</span>
+                <p>Reviewing relevance signals</p>
+            </div>
+            <div>
+                <span>✓</span>
+                <p>Measuring structure, pace, and filler words</p>
+            </div>
+        </div>
+
+        <p class="analysis-note">
+            Your report is generated from recognised speech transcripts and timing data.
+            It is designed for interview practice and does not judge personality or intelligence.
+        </p>
+    </section>
+</main>
+
+<script>
+    const interviewData = localStorage.getItem("interviewData");
+
+    if (!interviewData) {
+        window.location.href = "setup.html";
+    }
+
+    const steps = [
+        "Reading your answer transcripts...",
+        "Checking answer completeness...",
+        "Reviewing relevance signals...",
+        "Checking answer structure...",
+        "Measuring speaking pace and filler words...",
+        "Generating your practice report..."
+    ];
+
+    const status = document.getElementById("status");
+    const progress = document.getElementById("analysisProgress");
+    let stepIndex = 0;
+
+    const interval = setInterval(() => {
+        status.textContent = steps[stepIndex];
+        progress.style.width = `${((stepIndex + 1) / steps.length) * 100}%`;
+
+        stepIndex += 1;
+
+        if (stepIndex >= steps.length) {
+            clearInterval(interval);
+
+            setTimeout(() => {
+                window.location.href = "report.html";
+            }, 700);
+        }
+    }, 700);
+</script>
+
+</body>
+
+</html>

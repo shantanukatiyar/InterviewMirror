@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterviewMirror | Practice Report</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- PDF download library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="logo">InterviewMirror</div>
+        <a href="index.html" class="btn-secondary">Back to Home</a>
+    </header>
+
+    <main class="report-page">
+
+        <section class="report-hero">
+            <div>
+                <p class="eyebrow" id="reportRound">INTERVIEW PRACTICE REPORT</p>
+                <h1>Your Practice Feedback</h1>
+                <p id="reportIntro">
+                    This report is based on your recognised answer transcripts and answer timing.
+                </p>
+            </div>
+
+            <div class="score-box">
+                <p>OVERALL PRACTICE SCORE</p>
+                <div id="score" class="score">0</div>
+                <span>/100</span>
+                <h3 id="scoreLabel">Preparing feedback</h3>
+            </div>
+        </section>
+
+        <section id="importantNotice" class="report-notice" style="display: none;"></section>
+
+        <section class="report-section">
+            <div class="section-heading left-align">
+                <p class="eyebrow">SCORE BREAKDOWN</p>
+                <h2>What Was Measured</h2>
+                <p>
+                    Each metric is calculated from the text recognised during your answers.
+                    These are practice signals, not a judgment of your personality or potential.
+                </p>
+            </div>
+
+            <div class="grid report-metrics">
+                <article class="card metric-report-card">
+                    <div class="metric-report-top">
+                        <h3>Answer Completeness</h3>
+                        <strong id="completenessScore">0%</strong>
+                    </div>
+                    <p>25% weight · Checks whether your responses contain enough spoken content.</p>
+                    <div class="metric-line"><span id="completenessBar"></span></div>
+                </article>
+
+                <article class="card metric-report-card">
+                    <div class="metric-report-top">
+                        <h3>Relevance Signals</h3>
+                        <strong id="relevanceScore">0%</strong>
+                    </div>
+                    <p>25% weight · Checks useful interview-related keywords in your transcript.</p>
+                    <div class="metric-line"><span id="relevanceBar"></span></div>
+                </article>
+
+                <article class="card metric-report-card">
+                    <div class="metric-report-top">
+                        <h3>Answer Structure</h3>
+                        <strong id="structureScore">0%</strong>
+                    </div>
+                    <p>20% weight · Checks organisation markers or STAR-method coverage.</p>
+                    <div class="metric-line"><span id="structureBar"></span></div>
+                </article>
+
+                <article class="card metric-report-card">
+                    <div class="metric-report-top">
+                        <h3>Speaking Pace</h3>
+                        <strong id="paceScore">0%</strong>
+                    </div>
+                    <p>15% weight · Estimates words per minute from transcript and answer time.</p>
+                    <div class="metric-line"><span id="paceBar"></span></div>
+                </article>
+
+                <article class="card metric-report-card">
+                    <div class="metric-report-top">
+                        <h3>Filler-Word Control</h3>
+                        <strong id="fillerScore">0%</strong>
+                    </div>
+                    <p>15% weight · Checks the frequency of common filler words.</p>
+                    <div class="metric-line"><span id="fillerBar"></span></div>
+                </article>
+            </div>
+        </section>
+
+        <section class="report-section">
+            <div class="section-heading left-align">
+                <p class="eyebrow">PERSONALISED PRACTICE TIPS</p>
+                <h2>What to Improve Next</h2>
+            </div>
+
+            <div id="feedbackList" class="feedback-list"></div>
+        </section>
+
+        <section class="report-section">
+            <div class="section-heading left-align">
+                <p class="eyebrow">ANSWER REVIEW</p>
+                <h2>Your Question-by-Question Summary</h2>
+            </div>
+
+            <div id="answerReview" class="answer-review"></div>
+        </section>
+
+        <section class="report-section report-method">
+            <h2>How This Score Works</h2>
+            <p>
+                InterviewMirror uses browser speech recognition and rule-based analysis.
+                It checks transcript length, relevant keywords, structure signals, speaking pace,
+                and filler words. It cannot verify whether an answer is factually correct or
+                fully understand the meaning of every response.
+            </p>
+
+            <div class="method-weights">
+                <span>25% Completeness</span>
+                <span>25% Relevance</span>
+                <span>20% Structure</span>
+                <span>15% Pace</span>
+                <span>15% Filler Control</span>
+            </div>
+        </section>
+
+        <section class="report-actions">
+            <a href="setup.html" class="btn-primary">Practice Again</a>
+            <button id="downloadButton" class="btn-secondary" type="button">Download PDF Report</button>
+        </section>
+
+    </main>
+
+    <script>
+        const data = JSON.parse(localStorage.getItem("interviewData"));
+
+        if (!data || !data.questions || !data.questions.length) {
+            window.location.href = "setup.html";
+        }
+
+        const studentName = localStorage.getItem("studentName") || "InterviewMirror Student";
+        const isBehavioral = data.interviewType === "BEHAVIORAL";
+
+        const fillerWords = [
+            "um", "uh", "umm", "uhh", "like", "basically",
+            "actually", "you know", "sort of", "kind of"
+        ];
+
+        const generalRelevanceWords = [
+            "skill", "skills", "project", "projects", "experience", "learned",
+            "learning", "team", "teamwork", "goal", "goals", "responsibility",
+            "responsibilities", "problem", "solution", "result", "improve",
+            "improvement", "developed", "built", "created", "worked", "contributed",
+            "college", "student", "internship", "achievement", "challenge"
+        ];
+
+        const hrStructureWords = [
+            "currently", "studying", "student", "background", "skills",
+            "project", "experience", "interest", "goal", "looking forward",
+            "opportunity", "because", "for example"
+        ];
+
+        const starGroups = {
+            situation: ["situation", "when", "during", "while", "at that time", "context"],
+            task: ["task", "responsibility", "needed to", "had to", "goal", "objective"],
+            action: ["action", "i did", "i decided", "i worked", "i created", "i solved", "i coordinated", "i took"],
+            result: ["result", "outcome", "achieved", "improved", "completed", "learned", "success", "impact"]
+        };
+
+        function normaliseText(text) {
+            return (text || "")
+                .toLowerCase()
+                .replace(/[^\w\s']/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        function countWords(text) {
+            const cleanText = normaliseText(text);
+            return cleanText ? cleanText.split(" ").filter(Boolean).length : 0;
+        }
+
+        function countKeywordMatches(text, keywords) {
+            const cleanText = normaliseText(text);
+            let matches = 0;
+
+            keywords.forEach((keyword) => {
+                if (cleanText.includes(keyword)) {
+                    matches += 1;
+                }
+            });
+
+            return matches;
+        }
+
+        function countFillers(text) {
+            const cleanText = normaliseText(text);
+            let count = 0;
+
+            fillerWords.forEach((word) => {
+                const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const expression = new RegExp(`\\b${escapedWord}\\b`, "g");
+                const found = cleanText.match(expression);
+                count += found ? found.length : 0;
+            });
+
+            return count;
+        }
+
+        function getCompletenessScore(wordCount) {
+            if (wordCount === 0) return 0;
+            if (wordCount < 20) return 20;
+            if (wordCount < 40) return 45;
+            if (wordCount < 70) return 70;
+            if (wordCount < 120) return 90;
+            return 100;
+        }
+
+        function getRelevanceScore(text) {
+            const matches = countKeywordMatches(text, generalRelevanceWords);
+
+            if (!text.trim()) return 0;
+            return Math.min(100, Math.round((matches / 6) * 100));
+        }
+
+        function getHrStructureScore(text) {
+            if (!text.trim()) return 0;
+
+            const matches = countKeywordMatches(text, hrStructureWords);
+
+            if (matches <= 1) return 25;
+            if (matches <= 3) return 55;
+            if (matches <= 5) return 80;
+            return 100;
+        }
+
+        function getStarScore(text) {
+            if (!text.trim()) return 0;
+
+            let coveredGroups = 0;
+
+            Object.values(starGroups).forEach((keywords) => {
+                if (countKeywordMatches(text, keywords) > 0) {
+                    coveredGroups += 1;
+                }
+            });
+
+            return Math.round((coveredGroups / 4) * 100);
+        }
+
+        function getPaceData(wordCount, duration) {
+            if (!wordCount || !duration) {
+                return { wpm: 0, score: 0 };
+            }
+
+            const wpm = Math.round((wordCount / duration) * 60);
+
+            if (wpm < 45) return { wpm, score: 35 };
+            if (wpm < 75) return { wpm, score: 70 };
+            if (wpm <= 165) return { wpm, score: 100 };
+            if (wpm <= 190) return { wpm, score: 75 };
+            return { wpm, score: 45 };
+        }
+
+        function getFillerScore(fillerCount, wordCount) {
+            if (!wordCount) return 0;
+
+            const fillerRate = (fillerCount / wordCount) * 100;
+
+            if (fillerRate === 0) return 100;
+            if (fillerRate <= 2) return 90;
+            if (fillerRate <= 4) return 70;
+            if (fillerRate <= 7) return 45;
+            return 20;
+        }
+
+        const analysedAnswers = data.questions.map((answer) => {
+            const transcript = answer.transcript || "";
+            const wordCount = answer.wordCount || countWords(transcript);
+            const duration = answer.answerDurationSeconds || 60;
+            const fillerCount = countFillers(transcript);
+            const completeness = getCompletenessScore(wordCount);
+            const relevance = getRelevanceScore(transcript);
+            const structure = isBehavioral
+                ? getStarScore(transcript)
+                : getHrStructureScore(transcript);
+            const pace = getPaceData(wordCount, duration);
+            const fillerControl = getFillerScore(fillerCount, wordCount);
+
+            const answerScore = Math.round(
+                (completeness * 0.25) +
+                (relevance * 0.25) +
+                (structure * 0.20) +
+                (pace.score * 0.15) +
+                (fillerControl * 0.15)
+            );
+
+            return {
+                ...answer,
+                transcript,
+                wordCount,
+                duration,
+                fillerCount,
+                completeness,
+                relevance,
+                structure,
+                pace,
+                fillerControl,
+                answerScore
+            };
+        });
+
+        function averageMetric(metric) {
+            return Math.round(
+                analysedAnswers.reduce((sum, answer) => sum + answer[metric], 0) /
+                analysedAnswers.length
+            );
+        }
+
+        const completenessScore = averageMetric("completeness");
+        const relevanceScore = averageMetric("relevance");
+        const structureScore = averageMetric("structure");
+        const paceScore = Math.round(
+            analysedAnswers.reduce((sum, answer) => sum + answer.pace.score, 0) /
+            analysedAnswers.length
+        );
+        const fillerScore = averageMetric("fillerControl");
+
+        const overallScore = Math.round(
+            (completenessScore * 0.25) +
+            (relevanceScore * 0.25) +
+            (structureScore * 0.20) +
+            (paceScore * 0.15) +
+            (fillerScore * 0.15)
+        );
+
+        const totalWords = analysedAnswers.reduce((sum, answer) => sum + answer.wordCount, 0);
+        const answeredQuestions = analysedAnswers.filter((answer) => answer.wordCount > 0).length;
+
+        function setMetric(scoreId, barId, score) {
+            document.getElementById(scoreId).textContent = `${score}%`;
+            document.getElementById(barId).style.width = `${score}%`;
+        }
+
+        function getScoreLabel(score) {
+            if (score >= 85) return "Strong practice response";
+            if (score >= 70) return "Good foundation";
+            if (score >= 50) return "Developing response";
+            return "Keep practising";
+        }
+
+        function createFeedback() {
+            const feedback = [];
+
+            if (answeredQuestions === 0) {
+                feedback.push({
+                    title: "No spoken answer was detected",
+                    text: "The transcript contains no recognised words. Check microphone permission and try answering aloud during the full answer window."
+                });
+                return feedback;
+            }
+
+            if (answeredQuestions < data.totalQuestions) {
+                feedback.push({
+                    title: "Complete both answers",
+                    text: "One question had no recognised speech. Practising both responses gives you a more useful report and a stronger interview habit."
+                });
+            }
+
+            if (completenessScore < 60) {
+                feedback.push({
+                    title: "Add more detail",
+                    text: "Your responses were short. Aim to include your context, the action you took, and one outcome or learning point."
+                });
+            }
+
+            if (relevanceScore < 60) {
+                feedback.push({
+                    title: "Use specific interview evidence",
+                    text: "Mention relevant skills, projects, teamwork, learning, challenges, or results so your answer has clearer supporting signals."
+                });
+            }
+
+            if (structureScore < 60) {
+                feedback.push({
+                    title: isBehavioral ? "Use the STAR method" : "Use a simple answer structure",
+                    text: isBehavioral
+                        ? "Try organising your response as Situation, Task, Action, and Result. Make your personal action and final outcome clear."
+                        : "Start with your current background, mention relevant skills or experience, give one example, and end with your goal or fit."
+                });
+            }
+
+            if (paceScore < 60) {
+                feedback.push({
+                    title: "Adjust your speaking pace",
+                    text: "The transcript suggests your answer was either very brief or very fast. Speak at a steady pace and leave short pauses between ideas."
+                });
+            }
+
+            if (fillerScore < 70) {
+                feedback.push({
+                    title: "Reduce filler words",
+                    text: "Replace fillers such as “um,” “uh,” or repeated “like” with a short pause while you think."
+                });
+            }
+
+            if (feedback.length === 0) {
+                feedback.push({
+                    title: "Build on this response",
+                    text: "Your transcript shows a balanced practice answer. For your next attempt, add a measurable result or a more specific example to make it stronger."
+                });
+            }
+
+            return feedback.slice(0, 4);
+        }
+
+        function renderFeedback() {
+            const feedbackList = document.getElementById("feedbackList");
+            const feedback = createFeedback();
+
+            feedbackList.innerHTML = feedback.map((item, index) => `
+                <article class="card feedback-card">
+                    <span class="feedback-number">0${index + 1}</span>
+                    <div>
+                        <h3>${item.title}</h3>
+                        <p>${item.text}</p>
+                    </div>
+                </article>
+            `).join("");
+        }
+
+        function escapeHtml(text) {
+            const temporaryElement = document.createElement("div");
+            temporaryElement.textContent = text;
+            return temporaryElement.innerHTML;
+        }
+
+        function renderAnswerReview() {
+            const answerReview = document.getElementById("answerReview");
+
+            answerReview.innerHTML = analysedAnswers.map((answer) => {
+                const transcriptText = answer.transcript
+                    ? escapeHtml(answer.transcript)
+                    : "No speech was recognised for this answer.";
+
+                const structureLabel = isBehavioral ? "STAR coverage" : "Structure signals";
+
+                return `
+                    <article class="card answer-card">
+                        <div class="answer-card-header">
+                            <div>
+                                <span class="answer-number">QUESTION ${answer.questionNumber}</span>
+                                <h3>${escapeHtml(answer.question)}</h3>
+                            </div>
+                            <strong>${answer.answerScore}/100</strong>
+                        </div>
+
+                        <div class="answer-transcript">
+                            <p class="transcript-label">RECOGNISED TRANSCRIPT</p>
+                            <p>${transcriptText}</p>
+                        </div>
+
+                        <div class="answer-stats">
+                            <span>${answer.wordCount} words</span>
+                            <span>${answer.pace.wpm} WPM</span>
+                            <span>${answer.fillerCount} filler words</span>
+                            <span>${structureLabel}: ${answer.structure}%</span>
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        function renderNotice() {
+            const notice = document.getElementById("importantNotice");
+
+            if (answeredQuestions === 0) {
+                notice.style.display = "block";
+                notice.innerHTML = `
+                    <strong>Important:</strong> No recognised speech was found in this session,
+                    so the score is based on empty transcripts. Check microphone permission,
+                    use Chrome or Edge, and speak during the answer phase before trying again.
+                `;
+            } else if (answeredQuestions < data.totalQuestions) {
+                notice.style.display = "block";
+                notice.innerHTML = `
+                    <strong>Partial report:</strong> Speech was recognised for ${answeredQuestions}
+                    out of ${data.totalQuestions} questions. Complete both answers next time for a more balanced score.
+                `;
+            }
+        }
+
+        function downloadSummary() {
+            const { jsPDF } = window.jspdf;
+
+            const pdf = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: "a4"
+            });
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            const reportDate = new Date().toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric"
+            });
+
+            pdf.setFillColor(11, 11, 15);
+            pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+            pdf.setFillColor(20, 20, 32);
+            pdf.rect(0, 0, pageWidth, 34, "F");
+
+            pdf.setTextColor(212, 175, 55);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(21);
+            pdf.text("InterviewMirror", 16, 16);
+
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(11);
+            pdf.setFont("helvetica", "normal");
+            pdf.text("Practice Interview Report", 16, 24);
+
+            pdf.setTextColor(170, 170, 170);
+            pdf.setFontSize(9);
+            pdf.text(reportDate, pageWidth - 16, 16, { align: "right" });
+
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(17);
+            pdf.text(studentName, 16, 47);
+
+            pdf.setTextColor(170, 170, 170);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+            pdf.text(
+                `${isBehavioral ? "Behavioural" : "HR"} Interview Practice`,
+                16,
+                54
+            );
+
+            pdf.text(
+                `${answeredQuestions} of ${data.totalQuestions} answers recognised · ${totalWords} total words`,
+                16,
+                60
+            );
+
+            pdf.setFillColor(25, 25, 38);
+            pdf.roundedRect(16, 68, pageWidth - 32, 34, 4, 4, "F");
+
+            pdf.setTextColor(170, 170, 170);
+            pdf.setFontSize(9);
+            pdf.text("OVERALL PRACTICE SCORE", 24, 78);
+
+            pdf.setTextColor(212, 175, 55);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(29);
+            pdf.text(`${overallScore}`, 24, 94);
+
+            pdf.setTextColor(170, 170, 170);
+            pdf.setFontSize(11);
+            pdf.text("/100", 43, 94);
+
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(13);
+            pdf.text(getScoreLabel(overallScore), pageWidth - 24, 85, { align: "right" });
+
+            pdf.setTextColor(212, 175, 55);
+            pdf.setFontSize(10);
+            pdf.text("SCORE BREAKDOWN", 16, 115);
+
+            const breakdown = [
+                ["Completeness", completenessScore],
+                ["Relevance", relevanceScore],
+                ["Structure", structureScore],
+                ["Speaking Pace", paceScore],
+                ["Filler Control", fillerScore]
+            ];
+
+            let y = 124;
+
+            breakdown.forEach(([label, value]) => {
+                pdf.setTextColor(230, 230, 230);
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(10);
+                pdf.text(label, 16, y);
+
+                pdf.setTextColor(212, 175, 55);
+                pdf.setFont("helvetica", "bold");
+                pdf.text(`${value}%`, pageWidth - 16, y, { align: "right" });
+
+                pdf.setFillColor(45, 45, 55);
+                pdf.roundedRect(16, y + 4, pageWidth - 32, 4, 2, 2, "F");
+
+                pdf.setFillColor(212, 175, 55);
+                pdf.roundedRect(16, y + 4, ((pageWidth - 32) * value) / 100, 4, 2, 2, "F");
+
+                y += 15;
+            });
+
+            pdf.setTextColor(212, 175, 55);
+            pdf.setFontSize(10);
+            pdf.text("NEXT PRACTICE FOCUS", 16, y + 4);
+
+            y += 13;
+
+            pdf.setTextColor(225, 225, 225);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+
+            createFeedback().slice(0, 3).forEach((item, index) => {
+                const text = `${index + 1}. ${item.title}: ${item.text}`;
+                const lines = pdf.splitTextToSize(text, pageWidth - 36);
+
+                pdf.text(lines, 18, y);
+                y += (lines.length * 5) + 4;
+            });
+
+            pdf.setDrawColor(70, 70, 78);
+            pdf.line(16, pageHeight - 18, pageWidth - 16, pageHeight - 18);
+
+            pdf.setTextColor(145, 145, 145);
+            pdf.setFontSize(8);
+            pdf.text(
+                "Generated using browser speech recognition and rule-based practice analysis.",
+                16,
+                pageHeight - 11
+            );
+
+            pdf.text(
+                "InterviewMirror · Practice. Improve. Crack Interviews.",
+                pageWidth - 16,
+                pageHeight - 11,
+                { align: "right" }
+            );
+
+            const safeName = studentName.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+            pdf.save(`InterviewMirror_Report_${safeName}.pdf`);
+        }
+
+        document.getElementById("reportRound").textContent = isBehavioral
+            ? "BEHAVIOURAL INTERVIEW PRACTICE REPORT"
+            : "HR INTERVIEW PRACTICE REPORT";
+
+        document.getElementById("reportIntro").textContent =
+            `${answeredQuestions} of ${data.totalQuestions} answers contained recognised speech, with ${totalWords} total recognised words.`;
+
+        document.getElementById("score").textContent = overallScore;
+        document.getElementById("scoreLabel").textContent = getScoreLabel(overallScore);
+
+        setMetric("completenessScore", "completenessBar", completenessScore);
+        setMetric("relevanceScore", "relevanceBar", relevanceScore);
+        setMetric("structureScore", "structureBar", structureScore);
+        setMetric("paceScore", "paceBar", paceScore);
+        setMetric("fillerScore", "fillerBar", fillerScore);
+
+        renderNotice();
+        renderFeedback();
+        renderAnswerReview();
+
+        localStorage.setItem("interviewReport", JSON.stringify({
+            overallScore,
+            completenessScore,
+            relevanceScore,
+            structureScore,
+            paceScore,
+            fillerScore,
+            analysedAnswers
+        }));
+
+        document.getElementById("downloadButton").addEventListener("click", downloadSummary);
+    </script>
+
+</body>
+
+</html>
